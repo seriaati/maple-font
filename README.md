@@ -481,9 +481,6 @@ fonts.packages = with pkgs; [
 
 See in [document](./source/features/README.md) or try it in [Playground](https://font.subf.dev/en/playground)
 
-> [!note]
-> The web tool for custom build is under development.
-
 ## Naming FAQ
 
 ### Features
@@ -512,12 +509,15 @@ See in [document](./source/features/README.md) or try it in [Playground](https:/
 - Why there exists `-AutoHint` and `-unhinted` suffix?
   - for backward compatibility, I keep the original naming scheme. `-AutoHint` is only used for `TTF` format.
 
-
 ## Custom Build
 
 The [`config.json`](./config.json) file is used to configure the build process. Checkout the [schema](./source/schema.json) or [document](./source/features/README.md) for more details.
 
 There also have some [command line options](#build-script-usage) for customizing the build process. Cli options have higher priority than options in `config.json`.
+
+### Build In Browser
+
+Go to [Playground](https://font.subf.dev/en/playground), and click "Custom Build" button in the bottom left corner
 
 ### Use Github Actions
 
@@ -554,6 +554,8 @@ python build.py
 If you have trouble installing the dependencies, just create a new GitHub Codespace and run the commands there
 
 #### Custom Nerd-Font
+
+If you just want to get fixed width icons, setup `"nerd_font.mono": true` in `config.json` or add `--nf-mono` flag to build script args.
 
 For custom `font-patcher` args, `font-forge` (and maybe `python3-fontforge` as well) is required.
 
@@ -617,10 +619,11 @@ By enabling `cv99`, all Chinese punctuation marks will be centred. See more deta
 
 ```
 usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
-                [--hinted | --no-hinted] [--liga | --no-liga] [--cn-narrow]
-                [--cn-scale-factor CN_SCALE_FACTOR] [--nerd-font | --no-nerd-font]
-                [--cn | --no-cn] [--cn-both] [--ttf-only] [--least-styles] [--cache]
-                [--cn-rebuild] [--archive]
+                [--hinted | --no-hinted] [--liga | --no-liga] [--nf-mono]
+                [--cn-narrow] [--cn-scale-factor CN_SCALE_FACTOR] [--nerd-font |
+                --no-nerd-font] [--cn | --no-cn] [--cn-both] [--ttf-only]
+                [--least-styles] [--font-patcher] [--cache] [--cn-rebuild]
+                [--archive]
 
 ✨ Builder and optimizer for Maple Mono
 
@@ -631,17 +634,19 @@ options:
   --debug               Add `Debug` suffix to family name and faster build
 
 Feature Options:
-  -n, --normal          Use normal preset, just like `JetBrains Mono` with slashed zero
+  -n, --normal          Use normal preset, just like `JetBrains Mono` with slashed
+                        zero
   --feat FEAT           Freeze font features, splited by `,` (e.g. `--feat
                         zero,cv01,ss07,ss08`). No effect on variable format
-  --apply-fea-file      Load feature file from `source/features/{regular,italic}.fea` to
-                        variable font
+  --apply-fea-file      Load feature file from `source/features/{regular,italic}.fea`
+                        to variable font
   --hinted              Use hinted font as base font in NF / CN / NF-CN (default)
   --no-hinted           Use unhinted font as base font in NF / CN / NF-CN
   --liga                Preserve all the ligatures (default)
   --no-liga             Remove all the ligatures
-  --cn-narrow           Make CN / JP characters narrow (And the font cannot be recogized
-                        as monospaced font)
+  --nf-mono             Fixed Nerd Font icons' width
+  --cn-narrow           Make CN / JP characters narrow (And the font cannot be
+                        recogized as monospaced font)
   --cn-scale-factor CN_SCALE_FACTOR
                         Scale factor for CN / JP glyphs (e.g. 1.1)
 
@@ -654,10 +659,11 @@ Build Options:
                         version must be enabled
   --ttf-only            Only build TTF format
   --least-styles        Only build Regular / Bold / Italic / BoldItalic style
+  --font-patcher        Force the use of Nerd Font Patcher to build NF format
   --cache               Reuse font cache of TTF, OTF and Woff2 formats
   --cn-rebuild          Reinstantiate variable CN base font
   --archive             Build font archives with config and license. If has `--cache`
-                        flag, only archive Nerd-Font and CN formats
+                        flag, only archive NF and CN formats
 ```
 
 ## Development

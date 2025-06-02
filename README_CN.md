@@ -480,7 +480,7 @@ fonts.packages = with pkgs; [
 
 ## 使用方法 & 特性配置
 
-请参阅 [文档](./source/features/README_CN.md) 或者在 [这里](https://font.subf.dev/zh-cn/playground) 尝试。
+请参阅 [文档](./source/features/README_CN.md) 或者在 [特性测试页面](https://font.subf.dev/zh-cn/playground) 尝试。
 
 > [!note]
 > 用于自定义构建的 Web 工具仍在开发中。
@@ -519,6 +519,10 @@ fonts.packages = with pkgs; [
 [`config.json`](./config.json) 文件用于配置构建过程。查看 [schema](./source/schema.json) 或 [文档](./source/features/README.md) 了解更多详情。
 
 还有一些 [命令行选项](#构建脚本用法) 用于自定义构建过程。命令行选项的优先级高于 `config.json` 中的选项。
+
+### 浏览器中构建
+
+进入 [特性测试页面](https://font.subf.dev/zh-cn/playground)，点击左下角的 “自定义构建” 按钮
 
 ### 使用 Github Actions
 
@@ -564,6 +568,8 @@ python build.py
 - 如果 `"nerd_font.mono"` 设置为 `true`，则增加 `--mono`
 
 #### 预设
+
+如果您想要获得固定宽度的 Nerd Font 图标，只需要在 `config.json` 中设置 `"nerd_font.mono": true` 或者在构建脚本中添加 `--nf-mono` 参数即可。
 
 运行 `build.py` 时添加 `--normal` 参数，让字形不那么独特~~奇怪~~，就像 `JetBrains Mono` 一样（除了 `0` 的中间是斜线而不是点）。
 
@@ -618,10 +624,11 @@ OpenType Feature 可以控制字体的内置变体和连字。您可以通过修
 
 ```
 usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
-                [--hinted | --no-hinted] [--liga | --no-liga] [--cn-narrow]
-                [--cn-scale-factor CN_SCALE_FACTOR] [--nerd-font | --no-nerd-font]
-                [--cn | --no-cn] [--cn-both] [--ttf-only] [--least-styles] [--cache]
-                [--cn-rebuild] [--archive]
+                [--hinted | --no-hinted] [--liga | --no-liga] [--nf-mono]
+                [--cn-narrow] [--cn-scale-factor CN_SCALE_FACTOR] [--nerd-font |
+                --no-nerd-font] [--cn | --no-cn] [--cn-both] [--ttf-only]
+                [--least-styles] [--font-patcher] [--cache] [--cn-rebuild]
+                [--archive]
 
 ✨ Builder and optimizer for Maple Mono
 
@@ -641,6 +648,7 @@ Feature Options:
   --no-hinted           在 NF / CN / NF-CN 中使用 unhinted 字体作为基础字体
   --liga                保留所有连字（默认）
   --no-liga             删除所有连字
+  --nf_mono             固定 Nerd Font 图标的宽度
   --cn-narrow           减小中文/日文字形间距（同时会让系统无法识别为等宽字体）
   --cn-scale-factor CN_SCALE_FACTOR
                         中文/日文字形的缩放因子（例如 1.1）
@@ -654,10 +662,11 @@ Build Options:
                         Nerd-Font 版本
   --ttf-only            仅构建 TTF 格式
   --least-styles        仅构建 常规 / 粗体 / 斜体 / 粗斜体 样式
+  --font-patcher        强制使用 Nerd Font Patcher 构建 NF 格式
   --cache               重用 TTF、OTF 和 Woff2 格式的字体缓存
   --cn-rebuild          重新静态化可变的中文基字
   --archive             构建带有配置和许可的字体压缩包。如果带有 `--cache`
-                        标志，则仅打包 Nerd-Font 和 CN 格式
+                        标志，则仅打包 NF 和 CN 格式
 ```
 
 ## 我个人在用的其他中文字体资源

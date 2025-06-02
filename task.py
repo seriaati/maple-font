@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
-
-from source.py.utils import check_directory_hash
+from os import path
+import shutil
 
 
 def main():
@@ -17,20 +17,20 @@ def main():
     )
 
     feature_parser = command.add_parser("fea", help="Build fea files")
-    feature_parser.add_argument("--output", type=str, default="./source/features", help="Output directory")
-    feature_parser.add_argument("--cn", action="store_true", help="Generate features that contains CN features, remove exists CN feature files if not set")
+    feature_parser.add_argument(
+        "--output", type=str, default="./source/features", help="Output directory"
+    )
+    feature_parser.add_argument(
+        "--cn",
+        action="store_true",
+        help="Generate features that contains CN features, remove exists CN feature files if not set",
+    )
 
     release_parser = command.add_parser("release", help="Release new version")
     release_parser.add_argument(
-        "tag",
-        type=str,
-        help="The tag to build the release for, e.g. 7.0 or v7.0",
-    )
-    release_parser.add_argument(
-        "beta",
-        nargs="?",
-        type=str,
-        help="Beta tag name, e.g. 3 or beta3",
+        "type",
+        choices=["major", "minor"],
+        help="Bump version type",
     )
     release_parser.add_argument(
         "--dry",
@@ -55,17 +55,26 @@ def main():
     elif args.command == "release":
         from source.py.task.release import release
 
-        release(args.tag, args.beta, args.dry)
+        release(args.type, args.dry)
     elif args.command == "page":
         from source.py.task.page import page
 
         page("./maple-font-page", "./fonts/Variable", args.commit)
     else:
         print("Test only")
-        if check_directory_hash("./source/cn/static"):
-            print("Matched CN static font hash")
-        else:
-            print("Unmatched CN static font hash")
+        from source.py.in_browser import main
+
+        zip_path = "./fonts/archive/MapleMono-NF-CN-unhinted.zip"
+        if not path.exists(zip_path):
+            print("No zip file, please run `uv run build --archive` first")
+            return
+        test_path = zip_path.replace(".zip", "-test.zip")
+        shutil.copy(zip_path, test_path)
+        main(
+            test_path,
+            zip_path.replace(".zip", "-result.zip"),
+            {"cv01": "1", "cv02": "1"},
+        )
 
 
 if __name__ == "__main__":

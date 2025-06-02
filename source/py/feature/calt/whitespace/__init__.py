@@ -26,35 +26,33 @@ def get_base_lookup():
             ign_prefix="!",
             ign_suffix="!",
             extra_rules=[
-                ast.ignore(["(", cls_question], "!", "!"),
-                ast.ignore(["(", cls_question, "<"], "!", "!"),
+                ast.ign(["(", cls_question], "!", "!"),
+                ast.ign(["(", cls_question, "<"], "!", "!"),
             ],
         ),
         ast.subst_liga(
             "||",
-            ign_prefix=ast.cls("-", "|", "[", "<"),
-            ign_suffix=ast.cls("|", "]", ">", "-", "="),
+            ign_prefix=ast.cls("|", "[", "<"),
+            ign_suffix=ast.cls("|", "]", ">"),
         ),
         ast.subst_liga(
             2 * [cls_question.use()],
             target=ast.gly("??"),
             desc="??",
             ign_prefix=cls_question,
-            ign_suffix=ast.cls(cls_question, "="),
+            ign_suffix=cls_question,
         ),
         ast.subst_liga(
             3 * [cls_question.use()],
             target=ast.gly("???"),
             desc="???",
-            extra_rules=[
-                ast.ignore(cls_question, cls_question, [cls_question, cls_question]),
-                ast.ignore(None, cls_question, [cls_question, cls_question, cls_question]),
-            ],
+            ign_prefix=cls_question,
+            ign_suffix=cls_question,
         ),
         ast.subst_liga(
             "&&",
             ign_prefix="&",
-            ign_suffix=ast.cls("&", "="),
+            ign_suffix="&",
         ),
         ast.subst_liga(
             "&&&",
@@ -64,7 +62,7 @@ def get_base_lookup():
         ast.subst_liga(
             "//",
             ign_prefix="/",
-            ign_suffix=ast.cls("/", "="),
+            ign_suffix="/",
         ),
         ast.subst_liga(
             "///",
@@ -95,27 +93,6 @@ def get_base_lookup():
             "+++",
             ign_prefix="+",
             ign_suffix="+",
-        ),
-        ast.subst_liga(
-            "--",
-            ign_prefix=ast.cls("<", "-"),
-            ign_suffix=ast.cls("-", ">"),
-            extra_rules=[
-                ast.ignore(["<", ast.cls("#", "!")], "-", "-"),
-                ast.ignore(
-                    ["(", cls_question, "<", "!"],
-                    "-",
-                    "-",
-                ),
-            ],
-        ),
-        ast.subst_liga(
-            "---",
-            ign_prefix="-",
-            ign_suffix="-",
-            extra_rules=[
-                ast.ignore("<", "-", ["-", "-", ">"]),
-            ],
         ),
         ast.subst_liga(
             ";;",

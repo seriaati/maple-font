@@ -20,7 +20,6 @@ from source.py.utils import (
     compress_folder,
     download_cn_base_font,
     get_font_forge_bin,
-    get_font_name,
     is_ci,
     is_windows,
     match_unicode_names,
@@ -36,7 +35,7 @@ from source.py.feature import (
     normal_enabled_features,
 )
 
-FONT_VERSION = "v7.2"
+FONT_VERSION = "v7.3"
 # =========================================================================================
 
 
@@ -46,7 +45,7 @@ def check_ftcli():
 
     if not package_installed:
         print(
-            f"❗ {package_name} is not found. Please run `pip install foundrytools-cli`"
+            f"❗ {package_name} is not found. Please run `pip install foundrytools-cli==1.1.22`"
         )
         exit(1)
 
@@ -127,14 +126,19 @@ def parse_args(args: list[str] | None = None):
         help="Remove all the ligatures",
     )
     feature_group.add_argument(
+        "--nf-mono",
+        action="store_true",
+        help="Fixed Nerd Font icons' width",
+    )
+    feature_group.add_argument(
         "--cn-narrow",
         action="store_true",
-        help="Make CN characters narrow (And the font cannot be recogized as monospaced font)",
+        help="Make CN / JP characters narrow (And the font cannot be recogized as monospaced font)",
     )
     feature_group.add_argument(
         "--cn-scale-factor",
         type=float,
-        help="Scale factor for CN glyphs (e.g. 1.1)",
+        help="Scale factor for CN / JP glyphs (e.g. 1.1)",
     )
 
     build_group = parser.add_argument_group("Build Options")
@@ -184,6 +188,11 @@ def parse_args(args: list[str] | None = None):
         help="Only build Regular / Bold / Italic / BoldItalic style",
     )
     build_group.add_argument(
+        "--font-patcher",
+        action="store_true",
+        help="Force the use of Nerd Font Patcher to build NF format",
+    )
+    build_group.add_argument(
         "--cache",
         action="store_true",
         help="Reuse font cache of TTF, OTF and Woff2 formats",
@@ -191,12 +200,12 @@ def parse_args(args: list[str] | None = None):
     build_group.add_argument(
         "--cn-rebuild",
         action="store_true",
-        help="Reinstantiate CN base font",
+        help="Reinstantiate variable CN base font",
     )
     build_group.add_argument(
         "--archive",
         action="store_true",
-        help="Build font archives with config and license. If has `--cache` flag, only archive Nerd-Font and CN formats",
+        help="Build font archives with config and license. If has `--cache` flag, only archive NF and CN formats",
     )
 
     return parser.parse_args(args)
@@ -374,6 +383,9 @@ class FontConfig:
         if args.nerd_font is not None:
             self.nerd_font["enable"] = args.nerd_font
 
+        if args.nf_mono:
+            self.nerd_font["mono"] = args.nf_mono
+
         if args.cn is not None:
             self.cn["enable"] = args.cn
 
@@ -388,6 +400,9 @@ class FontConfig:
 
         if args.apply_fea_file:
             self.apply_fea_file = True
+
+        if args.font_patcher:
+            self.nerd_font["use_font_patcher"] = True
 
         if args.cn_rebuild:
             self.cn["clean_cache"] = True
@@ -513,11 +528,9 @@ class BuildOption:
         self.is_nf_built = False
         self.is_cn_built = False
         self.has_cache = (
-            self.__check_file_count(self.output_variable, count=2)
-            and self.__check_file_count(self.output_otf)
-            and self.__check_file_count(self.output_ttf)
-            and self.__check_file_count(self.output_ttf_hinted)
-            and self.__check_file_count(self.output_woff2)
+            self.__check_file_count(self.output_variable, minCount=2, end=".ttf")
+            and self.__check_file_count(self.output_ttf, minCount=4, end=".ttf")
+            and self.__check_file_count(self.output_ttf_hinted, minCount=4, end=".ttf")
         )
         self.github_mirror = environ.get("GITHUB", "github.com")
 
@@ -539,14 +552,17 @@ class BuildOption:
         ):
             return False
 
-        if check_font_patcher(
+        if not check_font_patcher(
             version=config.nerd_font["version"],
             github_mirror=self.github_mirror,
-        ) and not path.exists(config.nerd_font["font_forge_bin"]):
+        ):
+            exit(1)
+
+        if not path.exists(config.nerd_font["font_forge_bin"]):
             print(
-                f"FontForge bin({config.nerd_font['font_forge_bin']}) not found. Use prebuild Nerd-Font base font instead."
+                f"FontForge bin ({config.nerd_font['font_forge_bin']}) not found, cannot build with Nerd Font Patcher"
             )
-            return False
+            exit(1)
 
         return True
 
@@ -656,11 +672,11 @@ class BuildOption:
         print(f"Update {self.cn_static_dir}.sha256")
 
     def __check_file_count(
-        self, dir: str, count: int = 16, end: str | None = None
+        self, dir: str, minCount: int = 16, end: str | None = None
     ) -> bool:
         if not path.isdir(dir):
             return False
-        return len([f for f in listdir(dir) if end is None or f.endswith(end)]) == count
+        return len([f for f in listdir(dir) if end is None or f.endswith(end)]) >= minCount
 
 
 def handle_ligatures(
@@ -1015,7 +1031,7 @@ def build_nf_by_font_patcher(
 
     _nf_args += font_config.nerd_font["extra_args"]
 
-    run(_nf_args + [joinPaths(build_option.ttf_base_dir, font_basename)], log=True)
+    run(_nf_args + [joinPaths(build_option.ttf_base_dir, font_basename)])
     nf_file_name = "NerdFont"
     if font_config.nerd_font["mono"]:
         nf_file_name += "Mono"
@@ -1024,6 +1040,11 @@ def build_nf_by_font_patcher(
     )
     font = TTFont(_path)
     remove(_path)
+
+    # Check if the glyph 'nonmarkingreturn' exists in the font
+    extra_name = "nonmarkingreturn"
+    if extra_name in font.getGlyphNames():
+        font["hmtx"][extra_name] = (600, 0)  # type: ignore
     return font
 
 
@@ -1272,6 +1293,9 @@ def main(args: list[str] | None = None, version: str | None = None):
     if parsed_args.dry:
         print("font_config:", json.dumps(font_config.__dict__, indent=4))
         if not is_ci():
+            print(
+                "use font patcher:", build_option.should_use_font_patcher(font_config)
+            )
             print("build_option:", json.dumps(build_option.__dict__, indent=4))
             print("parsed_args:", json.dumps(parsed_args.__dict__, indent=4))
         return
@@ -1328,7 +1352,8 @@ def main(args: list[str] | None = None, version: str | None = None):
                 is_variable=True,
                 fea_path=joinPaths(
                     build_option.src_dir,
-                    "features/italic.fea" if is_italic else "features/regular.fea",
+                    "features",
+                    "italic.fea" if is_italic else "regular.fea",
                 ),
             )
 
@@ -1343,7 +1368,7 @@ def main(args: list[str] | None = None, version: str | None = None):
                 postscript_name=postscript_name,
                 unique_identifier=get_unique_identifier(
                     font_config=font_config,
-                    postscript_name=get_font_name(font, 6),
+                    postscript_name=postscript_name,
                     variable=True,
                 ),
                 is_skip_subfamily=True,
@@ -1494,12 +1519,17 @@ def main(args: list[str] | None = None, version: str | None = None):
             if f == archive_dir_name or f.endswith(".json"):
                 continue
 
-            if should_use_cache and f not in ["CN", "NF", "NF-CN"]:
-                continue
+            suffix = ""
+            if f in ["CN", "NF", "NF-CN"]:
+                if not font_config.use_hinted:
+                    suffix = "-unhinted"
+            else:
+                if should_use_cache:
+                    continue
 
             sha256, zip_file_name_without_ext = compress_folder(
                 family_name_compact=font_config.family_name_compact,
-                suffix="-unhinted" if not font_config.use_hinted else "",
+                suffix=suffix,
                 source_file_or_dir_path=joinPaths(build_option.output_dir, f),
                 build_config_path=joinPaths(
                     build_option.output_dir, "build-config.json"

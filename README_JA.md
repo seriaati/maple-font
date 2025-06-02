@@ -482,9 +482,6 @@ fonts.packages = with pkgs; [
 
 [ドキュメント](./source/features/README.md)を参照するか、[プレイグラウンド](https://font.subf.dev/en/playground)で試してください。
 
-> [!note]
-> カスタムビルド用の Web ツールは開発中です。
-
 ## 命名に関する FAQ
 
 ### 特徴
@@ -513,12 +510,15 @@ fonts.packages = with pkgs; [
 - なぜ `-AutoHint` と `-unhinted` サフィックスが存在するのですか？
   - 後方互換性のために、元の命名スキームを保持しています。`-AutoHint` は `TTF` 形式にのみ使用されます。
 
-
 ## カスタムビルド
 
 [`config.json`](./config.json)ファイルはビルドプロセスを構成するために使用されます。詳細については、[スキーマ](./source/schema.json)または[ドキュメント](./source/features/README.md)を参照してください。
 
 ビルドプロセスをカスタマイズするための[コマンドラインオプション](#build-script-usage)もいくつかあります。CLI オプションは `config.json` のオプションよりも優先されます。
+
+### ブラウザで構築する
+
+[プレイグラウンド](https://font.subf.dev/en/playground)に行く，左下隅の「Custom Build」ボタンをクリックしてください
 
 ### Github Actions を使用する
 
@@ -540,7 +540,6 @@ docker build -t maple-font .
 docker run -v "$(pwd)/fonts:/app/fonts" -e BUILD_ARGS="--normal" maple-font
 ```
 
-
 ### ローカルビルド
 
 リポジトリをクローンし、ローカルマシンで実行します。`python3` と `pip` がインストールされていることを確認してください。
@@ -556,6 +555,8 @@ python build.py
 依存関係のインストールに問題がある場合は、新しい GitHub Codespace を作成し、そこでコマンドを実行してください。
 
 #### カスタム Nerd-Font
+
+固定幅の Nerd Font アイコンを取得したい場合は、`config.json` に `"nerd_font.mono": true` と設定するか、ビルドスクリプトに `--nf-mono` パラメータを追加するだけです。
 
 カスタム `font-patcher` 引数の場合、`font-forge`（おそらく `python3-fontforge` も）が必要です。
 
@@ -619,10 +620,11 @@ CN バージョンはデフォルトで無効になっています。`python bui
 
 ```
 usage: build.py [-h] [-v] [-d] [--debug] [-n] [--feat FEAT] [--apply-fea-file]
-                [--hinted | --no-hinted] [--liga | --no-liga] [--cn-narrow]
-                [--cn-scale-factor CN_SCALE_FACTOR] [--nerd-font | --no-nerd-font]
-                [--cn | --no-cn] [--cn-both] [--ttf-only] [--least-styles] [--cache]
-                [--cn-rebuild] [--archive]
+                [--hinted | --no-hinted] [--liga | --no-liga] [--nf-mono]
+                [--cn-narrow] [--cn-scale-factor CN_SCALE_FACTOR] [--nerd-font |
+                --no-nerd-font] [--cn | --no-cn] [--cn-both] [--ttf-only]
+                [--least-styles] [--font-patcher] [--cache] [--cn-rebuild]
+                [--archive]
 
 ✨ Builder and optimizer for Maple Mono
 
@@ -643,6 +645,7 @@ Feature Options:
   --no-hinted           NF / CN / NF-CNでヒントなしフォントをベースフォントとして使用
   --liga                すべてのリガチャを保持（デフォルト）
   --no-liga             すべてのリガチャを削除
+  --nf-mono             固定された Nerd Font アイコンの幅
   --cn-narrow           中国語/日本語の文字間隔を縮小する（同時にシステムが等幅フォントと
                         して認識できなくなる）
   --cn-scale-factor CN_SCALE_FACTOR
@@ -657,10 +660,11 @@ Build Options:
                         Nerd-Fontバージョンが有効である必要があります
   --ttf-only            TTF形式のみをビルド
   --least-styles        通常の / 太字 / 斜体 / 太字斜体スタイルのみを構築する
+  --font-patcher        NF形式を構築するためにNerd Font Patcherの使用を強制する
   --cache               TTF、OTF、Woff2形式のフォントキャッシュを再利用
   --cn-rebuild          CNベースフォントを再インスタンス化
   --archive             設定とライセンスを含むフォントアーカイブをビルド。
-                        `--cache` フラグがある場合、Nerd-FontとCN形式のみをアーカイブ
+                        `--cache` フラグがある場合、NFとCN形式のみをアーカイブ
 ```
 
 ## クレジット

@@ -1,6 +1,5 @@
 import os
 import re
-import json
 from source.py.feature import (
     generate_fea_string,
     generate_fea_string_cn_only,
@@ -8,17 +7,17 @@ from source.py.feature import (
     get_cv_desc,
     get_cv_italic_desc,
     get_cv_cn_desc,
+    get_freeze_moving_rules,
     get_ss_desc,
     get_total_feat_dict,
 )
 from source.py.feature import normal_enabled_features
-from source.py.task._utils import write_json, write_text
+from source.py.task._utils import read_json, read_text, write_json, write_text
 from source.py.utils import joinPaths
 
 
 def replace_section(md_path: str, border: str, content: str) -> None:
-    with open(md_path, "r", encoding="utf-8") as file:
-        md_content = file.read()
+    md_content = read_text(md_path)
     pattern = f"{border}(.*){border}"
     updated_content = re.sub(
         pattern, f"{border}\n{content}\n{border}", md_content, flags=re.DOTALL
@@ -30,15 +29,13 @@ def update_feature_freeze(
     file_path: str,
     features: dict[str, str],
 ) -> None:
-    with open(file_path, "r", encoding="utf-8") as file:
-        config = json.load(file)
+    config = read_json(file_path)
     config["feature_freeze"] = {tag: "ignore" for tag in features}
     write_json(file_path, config)
 
 
 def update_schema(file_path: str, features: dict[str, str]) -> None:
-    with open(file_path, "r", encoding="utf-8") as file:
-        schema = json.load(file)
+    schema = read_json(file_path)
     schema["properties"]["feature_freeze"]["properties"] = {
         tag: {"description": desc, "$ref": "#/definitions/freeze_options"}
         for tag, desc in features.items()
@@ -77,7 +74,7 @@ def fea(output: str, cn: bool) -> None:
     # Update README sections
     md_path = joinPaths(output, "README.md")
     sections = {
-        "<!-- CALT -->": f"```\n{get_all_calt_text()}\n```",
+        "<!-- CALT -->": get_all_calt_text(),
         "<!-- CV -->": get_cv_desc(),
         "<!-- CV-IT -->": get_cv_italic_desc(),
         "<!-- CV-CN -->": get_cv_cn_desc(),
@@ -94,3 +91,17 @@ def fea(output: str, cn: bool) -> None:
     feat_str = ", ".join(normal_enabled_features)
     for f in ["README.md", "README_CN.md", "README_JA.md"]:
         replace_section(f, "<!-- NORMAL -->", f"```\n{feat_str}\n```")
+
+    script_path = joinPaths("source", "py", "in_browser.py")
+    in_browser_script = read_text(script_path)
+    rules = get_freeze_moving_rules()
+    rules.sort()
+    rule_arr_text = (
+        "[" + ", ".join([f'"{item}"' for item in rules]) + "]"
+    )
+    patched = re.sub(
+        r"MOVING_RULES = .*",
+        f"MOVING_RULES = {rule_arr_text}",
+        in_browser_script,
+    )
+    write_text(script_path, patched)
